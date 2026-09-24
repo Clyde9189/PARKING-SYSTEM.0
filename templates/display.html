@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ParkSmart Entrance Display</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="display-page">
+    <main class="entrance-display">
+        <p class="eyebrow">PARKSMART ENTRANCE</p>
+        <h1>Parking Availability</h1>
+        <section class="display-stats">
+            <div><span>Available</span><strong id="available">--</strong></div>
+            <div><span>Occupied</span><strong id="occupied">--</strong></div>
+        </section>
+        <h2>Available Bays</h2>
+        <div class="available-bays" id="available-bays">Loading...</div>
+        <p class="refresh-note">Updates automatically every 10 seconds</p>
+        <a class="back-link" href="{{ url_for('dashboard') }}">Back to management dashboard</a>
+    </main>
+    <script>
+        async function updateAvailability() {
+            const response = await fetch("{{ url_for('availability_api') }}");
+            const data = await response.json();
+            document.getElementById("available").textContent = data.available;
+            document.getElementById("occupied").textContent = data.occupied;
+            const bays = data.slots
+                .filter(slot => slot.status === "AVAILABLE")
+                .map(slot => `<span>${slot.number}</span>`)
+                .join("");
+            document.getElementById("available-bays").innerHTML = bays || "No bays available";
+        }
+
+        updateAvailability();
+        setInterval(updateAvailability, 10000);
+    </script>
+</body>
+</html>

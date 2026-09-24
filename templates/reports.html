@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports | ParkSmart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar"><div><h1>Daily Reconciliation Report</h1><p>Confirmed payments and VAT audit trail.</p></div><nav class="topnav"><a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('manage_rates') }}">Manage Rates</a></nav></header>
+<main class="container">
+    <section class="card"><form class="date-filter" method="GET"><label for="date">Report date</label><input id="date" name="date" type="date" value="{{ selected_date }}"><button type="submit">View report</button></form></section>
+    <section class="stats">
+        <div class="stat"><span>Confirmed Payments</span><strong>{{ summary['transactions'] }}</strong></div>
+        <div class="stat available"><span>Gross Revenue</span><strong>KSh {{ '%.2f'|format(summary['gross_revenue']) }}</strong></div>
+        <div class="stat occupied"><span>VAT Included</span><strong>KSh {{ '%.2f'|format(summary['vat_collected']) }}</strong></div>
+    </section>
+    <section class="card"><h2>Payment Method Reconciliation</h2><table><thead><tr><th>Method</th><th>Transactions</th><th>Total</th></tr></thead><tbody>{% for item in by_method %}<tr><td>{{ item['payment_method'] }}</td><td>{{ item['transaction_count'] }}</td><td>KSh {{ '%.2f'|format(item['total_collected']) }}</td></tr>{% else %}<tr><td colspan="3">No confirmed payments for this date.</td></tr>{% endfor %}</tbody></table></section>
+    <section class="card"><h2>Auditable Payment Transactions</h2><div class="table-wrapper"><table><thead><tr><th>Time</th><th>Vehicle</th><th>Bay</th><th>Method</th><th>Reference</th><th>Due</th><th>Received</th><th>Change</th><th>VAT</th></tr></thead><tbody>{% for item in transactions %}<tr><td>{{ item['paid_at']|replace('T', ' ') }}</td><td>{{ item['registration_number'] }}</td><td>{{ item['slot_number'] }}</td><td>{{ item['payment_method'] }}</td><td>{{ item['transaction_reference'] or 'Cash' }}</td><td>KSh {{ '%.2f'|format(item['amount_due']) }}</td><td>KSh {{ '%.2f'|format(item['amount_received']) }}</td><td>KSh {{ '%.2f'|format(item['change_given']) }}</td><td>KSh {{ '%.2f'|format(item['vat_amount']) }}</td></tr>{% else %}<tr><td colspan="9">No transactions for this date.</td></tr>{% endfor %}</tbody></table></div></section>
+</main>
+</body>
+</html>

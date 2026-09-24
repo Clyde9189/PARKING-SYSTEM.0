@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rates | ParkSmart</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar"><div><h1>Manage Parking Rates</h1><p>Changes take effect for future exits.</p></div><nav class="topnav"><a href="{{ url_for('dashboard') }}">Dashboard</a><a href="{{ url_for('reports') }}">Reports</a></nav></header>
+<main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+    <section class="card">
+        <p>Use a blank maximum value for an “and above” rate. Avoid overlapping active ranges.</p>
+        <div class="table-wrapper"><table>
+            <thead><tr><th>From minutes</th><th>To minutes</th><th>Charge (KSh)</th><th>Status</th><th>Save</th></tr></thead>
+            <tbody>
+            {% for rate in rates %}
+                <tr>
+                    <form action="{{ url_for('update_rate', rate_id=rate['rate_id']) }}" method="POST">
+                        <td><input name="minimum_minutes" type="number" min="0" value="{{ rate['minimum_minutes'] }}" required></td>
+                        <td><input name="maximum_minutes" type="number" min="0" value="{{ rate['maximum_minutes'] if rate['maximum_minutes'] is not none else '' }}"></td>
+                        <td><input name="amount" type="number" min="0" step="0.01" value="{{ rate['amount'] }}" required></td>
+                        <td>{{ 'Active' if rate['active'] else 'Inactive' }}</td>
+                        <td><button type="submit">Save</button></td>
+                    </form>
+                </tr>
+                <tr class="rate-toggle-row"><td colspan="5"><form action="{{ url_for('toggle_rate', rate_id=rate['rate_id']) }}" method="POST"><button class="secondary-button" type="submit">{{ 'Deactivate' if rate['active'] else 'Activate' }}</button></form></td></tr>
+            {% endfor %}
+            </tbody>
+        </table></div>
+    </section>
+</main>
+</body>
+</html>

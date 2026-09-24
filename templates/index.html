@@ -1,0 +1,408 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>ParkSmart</title>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+</head>
+
+<body>
+<header class="topbar">
+    <div>
+        <h1>PARK INNIT</h1>
+        <p> Simple Parking Management System </p>
+    </div>
+    <div class="barrier">
+        BARRIER:
+        <strong>READY</strong>
+    </div>
+    <nav class="topnav">
+        <a href="{{ url_for('entrance_display') }}">Entrance Display</a>
+        <a href="{{ url_for('manage_rates') }}">Manage Rates</a>
+        <a href="{{ url_for('reports') }}">Reports</a>
+    </nav>
+</header>
+
+<main class="container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(
+        with_categories=true
+    ) %}
+        {% if messages %}
+            <section class="messages">
+                {% for category, message in messages %}
+                    <div class="message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Parking Statistics -->
+    <section class="stats">
+        <div class="stat">
+            <span> Total Slots </span>
+            <strong> {{ total }} </strong>
+        </div>
+        <div class="stat available">
+            <span> Available </span>
+            <strong> {{ available }} </strong>
+        </div>
+        <div class="stat occupied">
+            <span> Occupied </span>
+            <strong> {{ occupied }} </strong>
+        </div>
+        <div class="stat queue">
+            <span> Waiting </span>
+            <strong> {{ queue|length }} </strong>
+        </div>
+    </section>
+
+    <!-- Parking Availability -->
+    <section class="card">
+        <div class="section-heading">
+            <div>
+                <h2> Parking Availability </h2>
+                <p>
+                    Drivers can see slot availability
+                    before entry.
+                </p>
+            </div>
+            <span class="legend">
+                <i class="dot green"></i>
+                Available
+            </span>
+            <span class="legend">
+                <i class="dot red"></i>
+                Occupied
+            </span>
+        </div>
+        <div class="parking-grid">
+            {% for slot in slots %}
+                <div
+                    class="slot
+                    {{ 'free'
+                       if slot['status'] == 'AVAILABLE'
+                       else 'busy' }}"
+                >
+                    <div class="slot-number">
+                        {{ slot['slot_number'] }}
+                    </div>
+                    <div class="slot-status">
+                        {{ slot['status'] }}=
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Entry + Exit -->
+    <div class="two-columns">
+        <!-- Vehicle Entry -->
+        <section class="card">
+            <h2> Vehicle Entry </h2>
+            <p>
+                Record an arriving vehicle and assign
+                the first available slot.
+            </p>
+            <form
+                action="{{ url_for('vehicle_entry') }}"
+                method="POST"
+            >
+                <label for="registration_number">
+                    Registration Number
+                </label>
+                <input
+                    id="registration_number"
+                    name="registration_number"
+                    placeholder="e.g. KDA 123A"
+                    required
+                >
+                <label for="vehicle_type">
+                    Vehicle Type
+                </label>
+                <select
+                    id="vehicle_type"
+                    name="vehicle_type"
+                    required
+                >
+                    <option value=""> Select type </option>
+                    <option> Car </option>
+                    <option> Motorcycle </option>
+                    <option> Van </option>
+                    <option> Truck </option>
+                </select>
+                <button type="submit"> Record Entry </button>
+            </form>
+        </section>
+
+        <!-- Vehicle Exit -->
+        <section class="card">
+            <h2> Vehicle Exit </h2>
+            <p> Calculate the fee and simulate opening the exit barrier. </p>
+            <form action="{{ url_for('vehicle_exit') }}" method="POST">
+                <label for="exit_registration"> Registration Number </label>
+                <input
+                    id="exit_registration"
+                    name="registration_number"
+                    placeholder="e.g. KDA 123A"
+                    required
+                >
+                <label for="payment">Payment (KSh) </label>
+                <input
+                    id="payment"
+                    name="payment"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Enter amount paid"
+                    required
+                >
+                <label for="payment_method">Payment Method</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="">Select method</option>
+                    <option value="MPESA">M-Pesa</option>
+                    <option value="CARD">Card</option>
+                    <option value="CASH">Cash</option>
+                </select>
+                <label for="transaction_reference">
+                    M-Pesa / Card Reference
+                </label>
+                <input
+                    id="transaction_reference"
+                    name="transaction_reference"
+                    placeholder="Required for M-Pesa or card"
+                >
+                <button type="submit"> Calculate & Exit </button>
+            </form>
+        </section>
+    </div>
+
+    <!-- Parking Tarrif -->
+    <section class="card">
+        <h2> Parking Tariff </h2>
+        <table class="tariff-table">
+            <thead>
+                <tr>
+                    <th> Parking Duration </th>
+                    <th> Fee </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in rates %}
+                    <tr class="current-rate">
+                        <td>
+                            {{ rate['minimum_minutes'] }} minutes
+                            {% if rate['maximum_minutes'] is not none %}
+                                to {{ rate['maximum_minutes'] }} minutes
+                            {% else %}
+                                and above
+                            {% endif %}
+                        </td>
+                        <td>KSh {{ "%.2f"|format(rate['amount']) }}</td>
+                    </tr>
+                {% endfor %}
+                <tr>
+                    <td> Up to 30 minutes </td>
+                    <td> FREE </td>
+                </tr>
+                <tr>
+                    <td> 31 minutes – 2 hours </td>
+                    <td> KSh 50 </td>
+                </tr>
+                <tr>
+                    <td> Over 2 – 4 hours </td>
+                    <td> KSh 100 </td>
+                </tr>
+                <tr>
+                    <td> Over 4 – 6 hours </td>
+                    <td> KSh 300 </td>
+                </tr>
+                <tr>
+                    <td> Over 6 hours </td>
+                    <td> KSh 500 </td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Currently parked vehicles -->
+    <section class="card">
+        <h2> Currently Parked Vehicles </h2>
+        {% if active_records %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th> Registration </th>
+                            <th> Type </th>
+                            <th> Slot </th>
+                            <th> Entry Time </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in active_records %}
+                            <tr>
+                                <td>
+                                    <strong>
+                                        {{ record[
+                                            'registration_number'
+                                        ] }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {{ record[
+                                        'vehicle_type'
+                                    ] }}
+                                </td>
+                                <td>
+                                    {{ record[
+                                        'slot_number'
+                                    ] }}
+                                </td>
+                                <td>
+                                    {{ record[
+                                        'entry_time'
+                                    ]|replace(
+                                        'T',
+                                        ' '
+                                    ) }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="empty"> No vehicles are currently parked. </p>
+        {% endif %}
+    </section>
+
+    <!-- Waiting Queue -->
+    <section class="card">
+        <h2> Waiting Queue </h2>
+        <p>
+            FIFO: the first vehicle to join the queue
+            is handled first.
+        </p>
+        {% if queue %}
+            <ol>
+                {% for vehicle in queue %}
+                    <li>
+                        <strong>
+                            {{ vehicle[
+                                'registration_number'
+                            ] }}
+                        </strong>
+                        —
+                        {{ vehicle[
+                            'vehicle_type'
+                        ] }}
+                    </li>
+                {% endfor %}
+            </ol>
+        {% else %}
+            <p class="empty"> No vehicles are waiting. </p>
+        {% endif %}
+    </section>
+
+    <!-- Completed Records -->
+    <section class="card">
+        <h2> Recent Completed Parking Records </h2>
+        {% if completed_records %}
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th> Registration </th>
+                            <th> Slot </th>
+                            <th> Entry </th>
+                            <th> Exit </th>
+                            <th> Minutes </th>
+                            <th> Paid </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record
+                           in completed_records %}
+                            <tr>
+                                <td>
+                                    {{
+                                        record[
+                                            'registration_number'
+                                        ]
+                                    }}
+                                </td>
+                                <td>
+                                    {{
+                                        record[
+                                            'slot_number'
+                                        ]
+                                    }}
+                                </td>
+                                <td>
+                                    {{
+                                        record[
+                                            'entry_time'
+                                        ]|replace(
+                                            'T',
+                                            ' '
+                                        )
+                                    }}
+                                </td>
+                                <td>
+                                    {{
+                                        record[
+                                            'exit_time'
+                                        ]|replace(
+                                            'T',
+                                            ' '
+                                        )
+                                    }}
+                                </td>
+                                <td>
+                                    {{
+                                        record[
+                                            'duration'
+                                        ]
+                                    }}
+                                </td>
+                                <td>
+                                    KSh
+                                    {{
+                                        "%.2f"|format(
+                                            record[
+                                                'amount_paid'
+                                            ]
+                                        )
+                                    }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="empty">
+                No completed parking records yet.
+            </p>
+        {% endif %}
+    </section>
+</main>
+
+<footer>
+    <p> Park Innit </p>
+</footer>
+</body>
+</html>
