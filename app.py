@@ -15,7 +15,7 @@ Database:
 - parking_slots
 - parking_records
 """
-
+import os
 from collections import deque
 from datetime import datetime
 from math import ceil
@@ -29,7 +29,7 @@ app = Flask(__name__)
 
 app.secret_key = "parking-system-dsa"
 
-DATABASE = "parking.db"
+DATABASE = os.environ.get("DATABASE_PATH", "parking.db")
 
 # Number of parking spaces in the demonstration system.
 TOTAL_SLOTS = 12
@@ -55,7 +55,6 @@ def get_db():
     connection.row_factory = sqlite3.Row
 
     return connection
-
 
 def initialize_database():
     """
@@ -1133,14 +1132,9 @@ def reports():
         by_method=by_method,
         transactions=transactions
     )
-
-
+# Create database and initial parking slots (runs on Render too).
+initialize_database()
 # start application
 
 if __name__ == "__main__":
-
-    # Create database and initial parking slots.
-    initialize_database()
-
-    # Start Flask development server.
     app.run(debug=True)
